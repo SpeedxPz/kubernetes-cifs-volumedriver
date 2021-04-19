@@ -94,7 +94,7 @@ func TestMountCmdComplete(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -106,6 +106,55 @@ func TestMountCmdComplete(t *testing.T) {
 		"-o",
 		"uid=33,gid=33,rw,domain=domain123,username=user123,password=pass123,domain=Foo",
 		"//fooserver123/test",
+		"/mnt/point",
+	}
+
+	if len(mountCmd.Args) != len(expected) {
+		t.Errorf("TestMountCmdComplete len: expected %d, actual %d", len(mountCmd.Args), len(expected))
+	}
+
+	for idx := range expected {
+		if mountCmd.Args[idx] != expected[idx] {
+			t.Errorf("TestMountCmdComplete[%d]: expected %s, actual %s", idx, expected[idx], mountCmd.Args[idx])
+		}
+	}
+
+}
+
+
+// Test Mount complete with volume name
+func TestMountCmdCompleteVolName(t *testing.T) {
+
+	jsonArgs := `{
+	  "kubernetes.io/mounterArgs.FsGroup": "33",
+	  "kubernetes.io/fsType": "",
+	  "kubernetes.io/pod.name": "nginx-deployment-549ddfb5fc-rnqk8",
+	  "kubernetes.io/pod.namespace": "default",
+	  "kubernetes.io/pod.uid": "bb6b2e46-c80d-4c86-920c-8e08736fa211",
+	  "kubernetes.io/pvOrVolumeName": "test-volume",
+	  "kubernetes.io/readwrite": "rw",
+	  "kubernetes.io/serviceAccount.name": "default",
+	  "kubernetes.io/secret/domain": "ZG9tYWluMTIz",
+	  "kubernetes.io/secret/username": "dXNlcjEyMw==",
+	  "kubernetes.io/secret/password": "cGFzczEyMw==",
+	  "opts": "domain=Foo",
+	  "server": "fooserver123",
+	  "share": "/test"
+	}`
+
+	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
+	mountCmd := createMountCmd(args, true)
+	if mountCmd == nil {
+		t.Error("Mount command wasn't created")
+	}
+
+	expected := []string{
+		"mount",
+		"-t",
+		"cifs",
+		"-o",
+		"uid=33,gid=33,rw,domain=domain123,username=user123,password=pass123,domain=Foo",
+		"//fooserver123/test/test-volume",
 		"/mnt/point",
 	}
 
@@ -139,7 +188,7 @@ func TestMountCmdSimplest(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -179,7 +228,7 @@ func TestMountCmdWithoutCredentials(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -224,7 +273,7 @@ func TestMountCmdFsGroupLegacy(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -268,7 +317,7 @@ func TestMountCmdWithoutFsGroup(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -319,7 +368,7 @@ func TestMountCmdInvalidCredendialDomain(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	createMountCmd(args)
+	createMountCmd(args, false)
 	t.Error("Invalid base64 did not cause panic")
 }
 
@@ -348,7 +397,7 @@ func TestMountCmdInvalidCredendialUser(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	createMountCmd(args)
+	createMountCmd(args, false)
 	t.Error("Invalid base64 did not cause panic")
 }
 
@@ -377,7 +426,7 @@ func TestMountCmdInvalidCredendialPassword(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	createMountCmd(args)
+	createMountCmd(args, false)
 	t.Error("Invalid base64 did not cause panic")
 }
 
@@ -400,7 +449,7 @@ func TestMountCmdWithoutReadWrite(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -442,7 +491,7 @@ func TestMountCmdNoCredentialsAndNoOpts(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -487,7 +536,7 @@ func TestMountCmdNoReadWrite(t *testing.T) {
 	}`
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -535,7 +584,7 @@ func TestMountCmdNewline(t *testing.T) {
 	)
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -583,7 +632,7 @@ func TestMountCmdReturn(t *testing.T) {
 	)
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}
@@ -632,7 +681,7 @@ func TestPassEnvOption(t *testing.T) {
 	)
 
 	args := []string{"/path/to/binary", "mount", "/mnt/point", jsonArgs}
-	mountCmd := createMountCmd(args)
+	mountCmd := createMountCmd(args, false)
 	if mountCmd == nil {
 		t.Error("Mount command wasn't created")
 	}

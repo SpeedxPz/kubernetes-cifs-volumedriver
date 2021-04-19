@@ -123,7 +123,18 @@ func runCommand(cmd *exec.Cmd) error {
 	return nil
 }
 
-func createMountCmd(cmdLineArgs []string) (cmd *exec.Cmd) {
+func createMountDirectory(cmdLineArgs []string) (cmd *exec.Cmd) {
+	if len(cmdLineArgs) < 4 {
+		panic(retMsgInsufficientArgs)
+	}
+	var mArgs mounterArgs = unmarshalMounterArgs(cmdLineArgs[3])
+	cmd = exec.Command("mkdir")
+	cmd.Args = append(cmd.Args, "-p")
+	cmd.Args = append(cmd.Args, fmt.Sprintf("%s%s", cmdLineArgs[2], mArgs.PvName))
+	return cmd
+}
+
+func createMountCmd(cmdLineArgs []string, includePVName bool) (cmd *exec.Cmd) {
 	if len(cmdLineArgs) < 4 {
 		panic(retMsgInsufficientArgs)
 	}
@@ -160,8 +171,12 @@ func createMountCmd(cmdLineArgs []string) (cmd *exec.Cmd) {
 	if len(optsFinal) > 0 {
 		cmd.Args = append(cmd.Args, "-o", strings.Join(optsFinal, ","))
 	}
-
-	cmd.Args = append(cmd.Args, fmt.Sprintf("//%s%s", mArgs.Server, mArgs.Share))
+	if includePVName == false {
+		cmd.Args = append(cmd.Args, fmt.Sprintf("//%s%s", mArgs.Server, mArgs.Share))
+	} else {
+		cmd.Args = append(cmd.Args, fmt.Sprintf("//%s%s/%s", mArgs.Server, mArgs.Share, mArgs.PvName))
+	}
+	
 	cmd.Args = append(cmd.Args, cmdLineArgs[2])
 
 	return cmd
@@ -205,13 +220,38 @@ func driverMain(args []string) (ret returnMsg) {
 		ret.Capabilities.FSGroup = false         // avoids chown/chmod upstream in driver caller
 		ret.Capabilities.SupportsMetrics = false // there are no metrics
 	case "mount":
-		cmd := createMountCmd(args)
+		cmd := createMountCmd(args, false)
 		log.Println(cmd.Args)
 		err = runCommand(cmd)
 		if err != nil {
 			ret.Status = retStatFailure
 			ret.Message = fmt.Sprintf("Error: %s", err)
 		}
+		
+		cmd = createMountDirectory(args)
+		log.Println(cmd.Args)
+		err = runCommand(cmd)
+		if err != nil {
+			ret.Status = retStatFailure
+			ret.Message = fmt.Sprintf("Error: %s", err)
+		}
+
+		cmd = createUmountCmd(args)
+		log.Println(cmd.Args)
+		err = runCommand(cmd)
+		if err != nil {
+			ret.Status = retStatFailure
+			ret.Message = fmt.Sprintf("Error: %s", err)
+		}
+
+		cmd = createMountCmd(args, true)
+		log.Println(cmd.Args)
+		err = runCommand(cmd)
+		if err != nil {
+			ret.Status = retStatFailure
+			ret.Message = fmt.Sprintf("Error: %s", err)
+		}
+
 	case "unmount":
 		cmd := createUmountCmd(args)
 		log.Println(cmd.Args)
