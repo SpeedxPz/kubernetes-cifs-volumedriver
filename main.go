@@ -130,7 +130,7 @@ func createMountDirectory(cmdLineArgs []string) (cmd *exec.Cmd) {
 	var mArgs mounterArgs = unmarshalMounterArgs(cmdLineArgs[3])
 	cmd = exec.Command("mkdir")
 	cmd.Args = append(cmd.Args, "-p")
-	cmd.Args = append(cmd.Args, fmt.Sprintf("%s%s", cmdLineArgs[2], mArgs.PvName))
+	cmd.Args = append(cmd.Args, fmt.Sprintf("%s/%s", cmdLineArgs[2], mArgs.PvName))
 	return cmd
 }
 
